@@ -49,7 +49,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 div.innerHTML = `
                     <div class="video-info">
                         <a href="${url || '#'}" class="video-title" target="_blank" rel="noopener noreferrer">${title}</a><br>
-                        <span class="video-meta">${author ? author + ' • ' : ''}${uploadTime}</span>
+                        <span class="video-meta">
+                        ${author && uploadTime
+                            ? `${author.trim()} | ${uploadTime.trim()}`
+                            : author
+                                ? author.trim()
+                                : uploadTime
+                                    ? uploadTime.trim()
+                                    : ''}
+                        </span>
                     </div>
                     <button data-id="${id}" class="x-btn" title="Unhide">&times;</button>
                 `;

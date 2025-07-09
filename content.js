@@ -30,13 +30,58 @@ function getVideoInfo(videoElem, fallbackId = '') {
     if (titleElem) title = titleElem.textContent.trim();
     // Author
     let author = '';
-    const authorElem = videoElem.querySelector('ytd-channel-name, #channel-name');
+    const authorElem = videoElem.querySelector('ytd-channel-name a, #channel-name a');
     if (authorElem) author = authorElem.textContent.trim();
     // Upload time
     let uploadTime = '';
-    const timeElem = videoElem.querySelector('div#metadata-line span');
-    if (timeElem) uploadTime = timeElem.textContent.trim();
+    const metadataSpans = videoElem.querySelectorAll('div#metadata-line span');
+    if (metadataSpans.length > 1) {
+        uploadTime = metadataSpans[1].textContent.trim();
+    } else if (metadataSpans.length === 1) {
+        uploadTime = metadataSpans[0].textContent.trim();
+    }
     return { id, title, author, uploadTime, url };
+}
+
+// Inject custom CSS for the X button if not already present
+function injectHideButtonCSS() {
+    if (document.getElementById('hide-yt-x-btn-style')) return;
+    const style = document.createElement('style');
+    style.id = 'hide-yt-x-btn-style';
+    style.textContent = `
+        .hide-yt-video-btn {
+            position: absolute !important;
+            top: 8px;
+            right: 8px;
+            z-index: 10;
+            background: rgba(255,255,255,0.85);
+            border: none;
+            color: #c00;
+            font-size: 1.5em;
+            font-weight: bold;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 6px rgba(60,60,60,0.10);
+            transition: background 0.2s, color 0.2s;
+        }
+        .hide-yt-video-btn:hover {
+            background: #ffeaea;
+            color: #a00;
+        }
+        .hide-yt-video-btn:active {
+            background: #ffcccc;
+        }
+        .hide-yt-btn-container {
+            position: absolute !important;
+            top: 0; right: 0; left: 0; height: 0; z-index: 10;
+        }
+    `;
+    document.head.appendChild(style);
 }
 
 // Ensure 'Hide' button is present on each video
@@ -44,12 +89,15 @@ function ensureHideButtons() {
     getVideoElements().forEach(videoElem => {
         const videoId = getVideoId(videoElem);
         if (!videoId) return;
+        // Only add the button if it doesn't already exist
         if (!videoElem.querySelector('.hide-yt-video-btn')) {
             const btn = document.createElement('button');
             btn.textContent = 'Hide';
             btn.className = 'hide-yt-video-btn';
             btn.style.margin = '8px';
+            btn.title = 'Hide this video';
             btn.onclick = () => hideVideo(videoElem);
+            // Insert button at the top of the video element
             videoElem.prepend(btn);
         }
     });
@@ -105,7 +153,8 @@ function hideVideo(videoElem) {
         if (!hidden.some(v => v.id === info.id)) {
             hidden.push(info);
             chrome.storage.sync.set({ hiddenVideos: hidden }, () => {
-                migrateHiddenVideos(processVideosWithToggle);
+                // After updating storage, immediately hide the video on the page
+                processVideosWithToggle(hidden);
             });
         }
     });
@@ -182,13 +231,16 @@ function migrateHiddenVideos(callback) {
 // Initial run: migrate and process with toggle
 migrateHiddenVideos(processVideosWithToggle);
 
-// After hiding a video, migrate and update
-// Optional: re-process videos if new ones are loaded (e.g., infinite scroll)
+// On page load, hide videos in the hidden list
+chrome.storage.sync.get(['hiddenVideos'], data => {
+    processVideosWithToggle(data.hiddenVideos || []);
+});
+
+// In MutationObserver, keep the UI in sync with storage
 const observer = new MutationObserver(() => {
     chrome.storage.sync.get(['hiddenVideos'], data => {
         processVideosWithToggle(data.hiddenVideos || []);
     });
-    ensureHideButtons();
 });
 observer.observe(document.body, { childList: true, subtree: true });
 

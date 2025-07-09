@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "Hide YouTube Subscriptions Videos",
+  "version": "1.0",
+  "description": "Manually hide videos on your YouTube subscriptions page. Unhide all or manage hidden videos from the popup.",
+  "permissions": ["storage", "scripting"],
+  "host_permissions": [
+    "https://www.youtube.com/feed/subscriptions*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.youtube.com/feed/subscriptions*"],
+      "js": ["content.js"]
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Manage Hidden Videos"
+  }
+} 

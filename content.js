@@ -52,7 +52,7 @@ function injectHideButtonCSS() {
         .hide-yt-video-btn {
             position: absolute !important;
             top: 8px;
-            right: 8px;
+            left: 8px;
             z-index: 10;
             background: rgba(255,255,255,0.85);
             border: none;
@@ -76,29 +76,27 @@ function injectHideButtonCSS() {
         .hide-yt-video-btn:active {
             background: #ffcccc;
         }
-        .hide-yt-btn-container {
-            position: absolute !important;
-            top: 0; right: 0; left: 0; height: 0; z-index: 10;
-        }
     `;
     document.head.appendChild(style);
 }
 
-// Ensure 'Hide' button is present on each video
 function ensureHideButtons() {
+    injectHideButtonCSS();
     getVideoElements().forEach(videoElem => {
         const videoId = getVideoId(videoElem);
         if (!videoId) return;
         // Only add the button if it doesn't already exist
         if (!videoElem.querySelector('.hide-yt-video-btn')) {
-            const btn = document.createElement('button');
-            btn.textContent = 'Hide';
-            btn.className = 'hide-yt-video-btn';
-            btn.style.margin = '8px';
-            btn.title = 'Hide this video';
-            btn.onclick = () => hideVideo(videoElem);
-            // Insert button at the top of the video element
-            videoElem.prepend(btn);
+            const thumb = videoElem.querySelector('ytd-thumbnail');
+            if (thumb) {
+                thumb.style.position = 'relative';
+                const btn = document.createElement('button');
+                btn.textContent = '×';
+                btn.className = 'hide-yt-video-btn';
+                btn.title = 'Hide this video';
+                btn.onclick = (e) => { e.stopPropagation(); hideVideo(videoElem); };
+                thumb.appendChild(btn);
+            }
         }
     });
 }
